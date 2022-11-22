@@ -1,0 +1,28 @@
+{
+  "name": "100kcrypto-api",
+  "version": "1.0.0",
+  "description": "Backend API with NodeJs, Express and MongoDB for 100k Crypto Application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "server": "nodemon server.js"
+  },
+  "author": "Pius Ifodo (Pax)",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.1",
+    "fs": "^0.0.1-security",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^6.3.3",
+    "multer": "^1.4.5-lts.1",
+    "nodemon": "^2.0.20",
+    "passport": "^0.5.3",
+    "passport-jwt": "^4.0.0",
+    "swagger-jsdoc": "^6.2.1",
+    "swagger-ui-express": "^4.4.0",
+    "validator": "^13.7.0"
+  }
+}
