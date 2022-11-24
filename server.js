@@ -54,7 +54,7 @@ app.use(express.json())
 app.use(passport.initialize())
 
 // Passport config
-// require('./config/passport')(passport)
+require('./config/passport')(passport)
 
 // Configure Db
 const db = require('./config/keys').mongoURI
@@ -62,13 +62,13 @@ const db = require('./config/keys').mongoURI
 // Connect to MongoDB
 mongoose.connect(db)
     .then(() => console.log('MongoDB Connected'))
-    .catch((err) => console.log('Can\'t connect to MongoDB... Please check the internet!\n' + err))
+    .catch((err) => console.log('Can\'t connect to MongoDB...\n' + err))
 
 // Test server
 app.get('/', (req, res) => res.send('Welcome! The 100k Crypto API'))
 
 // Use routes
-app.use('/api/auth', user)
+app.use('/api/user', user)
 
 
 app.listen(port, () => console.log(`Server running on port ${port}`))

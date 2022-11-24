@@ -3,14 +3,20 @@ const router = express.Router()
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const keys = require('../config/keys')
-const passport = require('passport')
+
+const nodemailUsername = require('../config/keys').mailTrapUsername
+const nodemailPassword = require('../config/keys').mailTrapPassword
 
 // Load Input validation
+const validateOTPInput = require('../validation/otp')
 const validateRegisterInput = require('../validation/register')
 const validateLoginInput = require('../validation/login')
 
 // Load UserModel
 const UserModel = require('../models/UserModel')
+const VerificationTokenModel = require('../models/VerificationTokenModel')
+const { generateOTP, mailTransport, generateEmailTemplate, verifyEmail } = require('../utils/mail')
+const VerifyEmailModel = require('../models/VerifyEmailModel')
 
 // @route   GET api/users/test
 // @desc    Test users route
@@ -73,7 +79,7 @@ router.get('/test-auth', (req, res) => res.json({ message: 'Authentication route
  *          200:
  *              description: New user created
  */
-router.post('/register', (req, res) => {
+router.post('/registeration', (req, res) => {
 
     const { errors, isValid } = validateRegisterInput(req.body)
 
@@ -96,6 +102,26 @@ router.post('/register', (req, res) => {
                     password: req.body.password
                 })
 
+                // Generate OTP
+                const OTP = generateOTP()
+
+                // Save encrypted OTP
+                bcrypt.genSalt(10, (err, salt) => {
+                    bcrypt.hash(OTP, salt, (err, hash) => {
+                        if (err) throw err
+
+                        const verificationToken = new VerificationTokenModel({
+                            user: newUser._id,
+                            token: hash
+                        })
+
+                        // console.log(hash)
+
+                        verificationToken.save()
+                    })
+                })
+
+                // Save new user with encrypted password
                 bcrypt.genSalt(10, (err, salt) => {
                     bcrypt.hash(newUser.password, salt, (err, hash) => {
                         if (err) throw err
@@ -104,12 +130,75 @@ router.post('/register', (req, res) => {
                         
                         newUser
                             .save()
-                            .then(user => res.json(user))
+                            .then(user => {
+                                res.json(user)
+
+                                // Send verification code to new user's email
+                                const nodemailer = require('nodemailer')
+                                const transporter = nodemailer.createTransport({
+                                    host: "smtp.mailtrap.io",
+                                    port: 2525,
+                                    auth: {
+                                        user: nodemailUsername,
+                                        pass: nodemailPassword
+                                    }
+                                })
+                                
+                                transporter.sendMail({
+                                    from: 'greenmouseapp@gmail.com',
+                                    to: newUser.email,
+                                    subject: 'Verify your email!',
+                                    html: generateEmailTemplate(OTP)
+                                })
+                            })
                             .catch(err => console.log(err))
                     })
                 })
             }
         })
+})
+
+// @route   POST api/users/email-verification
+// @desc    Verify new user
+// @access  public
+
+
+router.post('/verify-email', (req, res) => {
+
+    const { errors, isValid } = validateOTPInput(req.body)
+
+    // Check validation
+    if (!isValid) {
+        return res.status(400).json(errors)
+    }
+
+    new VerifyEmailModel({
+        userId: req.body.userId,
+        otp: req.body.otp
+    })
+        .save()
+        .then((inputOtp) => {
+            res.json(inputOtp)
+            
+            VerificationTokenModel.findOne({ id: req.user._id })
+                .then((user) => {
+                    console.log(user)
+                    
+                    // const isMatch = bcrypt.compare(req.body.otp, user.token).then((checkMatch) => { return checkMatch })
+
+                    // if (!isMatch) {
+                    //     errors.error = 'Please provide a valid token'
+                    //     return res.status(404).json(errors)
+                    // }
+                    
+                    // res.json({ otp: 'Verified' })
+                })
+        })
+
+    // VerifyEmailModel.findOne({ user: req.user._id })
+    //     .then(() => {
+
+    //     })
 })
 
 // @route   POST api/users/login
@@ -187,13 +276,62 @@ router.post('/login', (req, res) => {
     })
 })
 
+// @route   POST api/users/password-reset
+// @desc    Reset user's password
+// @access  public
+
+/**
+ * @swagger
+ * /api/user/password-reset:
+ *  post:
+ *      summary: Reset user's password
+ *      tags: [UserModel]
+ *      requestBody:
+ *          required: true
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      $ref: '#/components/schemas/UserModel'
+ *      responses:
+ *          200:
+ *              description: Password reset successfully
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          $ref: '#/components/schemas/UserModel'
+ *          400:
+ *              description: Bad Request
+ */
+router.post('/reset-password', (req, res) => {
+    const { errors, isValid } = validateLoginInput(req.body)
+
+    // Check validation
+    if (!isValid) {
+        return res.status(400).json(errors)
+    }
+
+    const email = req.body.email
+
+    UserModel.findOne({ email }).then(userEmail => {
+
+        if (!userEmail) {
+            errors.error = 'User email NOT found!'
+            return res.status(404).json(errors)
+        }
+
+
+    })
+})
+
 // @route   GET api/users/all
 // @desc    Get all registered users
 // @access  public
 
 /**
  * @swagger
- * /api/user/all:
+ * /api/user/get-all:
  *  get:
  *      summary: Get all registered users
  *      tags: [UserModel]
@@ -206,7 +344,7 @@ router.post('/login', (req, res) => {
  *                          type: object
  *                          $ref: '#/components/schemas/UserModel'
  */
-router.get('/all', (req, res) => {
+router.get('/get-all', (req, res) => {
 
     UserModel
         .find()
@@ -221,13 +359,13 @@ router.get('/all', (req, res) => {
 
 /**
  * @swagger
- * /api/user/user-email/{user_email}:
+ * /api/user/user-email/{userEmail}:
  *  get:
  *      summary: Get current user by email
  *      tags: [UserModel]
  *      parameters:
  *          -   in: path
- *              name: user_email
+ *              name: userEmail
  *              schema:
  *                  type: string
  *              required: true
@@ -241,10 +379,10 @@ router.get('/all', (req, res) => {
  *                          type: object
  *                          $ref: '#/components/schemas/UserModel'
  */
-router.get('/user-email/:user_email', (req, res) => {
+router.get('/user-email/:userEmail', (req, res) => {
 
     UserModel
-        .findOne({ email: req.params.user_email })
+        .findOne({ email: req.params.userEmail })
         .then(users => res.json(users))
         .catch(err => res.status(404).json(err))
 })
