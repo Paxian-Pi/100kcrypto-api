@@ -162,43 +162,7 @@ router.post('/registeration', (req, res) => {
 // @desc    Verify new user
 // @access  public
 
-/**
- * @swagger
- * components:
- *  securitySchemes:
- *      BearerAuth:
- *          type: http
- *          scheme: bearer
- *  schemas:
- *      EmailVerificationModel:
- *          type: object
- *          properties:
- *              token:
- *                  type: string
- *                  description: Verification token
- *          required:
- *              - token
- *          example:
- *              token: 1234
- */
 
-/**
- * @swagger
- * /api/user/email-verification:
- *  post:
- *      summary: Create new users
- *      tags: [EmailVerificationModel]
- *      requestBody:
- *          required: true
- *          content:
- *              application/json:
- *                  schema:
- *                      type: object
- *                      $ref: '#/components/schemas/EmailVerificationModel'
- *      responses:
- *          200:
- *              description: New user created
- */
 router.post('/verify-email', (req, res) => {
 
     const { errors, isValid } = validateOTPInput(req.body)
