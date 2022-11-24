@@ -127,7 +127,7 @@ router.post('/registeration', (req, res) => {
                         if (err) throw err
 
                         newUser.password = hash
-                        
+
                         newUser
                             .save()
                             .then(user => {
@@ -143,7 +143,7 @@ router.post('/registeration', (req, res) => {
                                         pass: nodemailPassword
                                     }
                                 })
-                                
+
                                 transporter.sendMail({
                                     from: 'greenmouseapp@gmail.com',
                                     to: newUser.email,
@@ -162,7 +162,43 @@ router.post('/registeration', (req, res) => {
 // @desc    Verify new user
 // @access  public
 
+/**
+ * @swagger
+ * components:
+ *  securitySchemes:
+ *      BearerAuth:
+ *          type: http
+ *          scheme: bearer
+ *  schemas:
+ *      EmailVerificationModel:
+ *          type: object
+ *          properties:
+ *              token:
+ *                  type: string
+ *                  description: Verification token
+ *          required:
+ *              - token
+ *          example:
+ *              token: 1234
+ */
 
+/**
+ * @swagger
+ * /api/user/email-verification:
+ *  post:
+ *      summary: Create new users
+ *      tags: [EmailVerificationModel]
+ *      requestBody:
+ *          required: true
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      $ref: '#/components/schemas/EmailVerificationModel'
+ *      responses:
+ *          200:
+ *              description: New user created
+ */
 router.post('/verify-email', (req, res) => {
 
     const { errors, isValid } = validateOTPInput(req.body)
@@ -190,7 +226,7 @@ router.post('/verify-email', (req, res) => {
                     //     errors.error = 'Please provide a valid token'
                     //     return res.status(404).json(errors)
                     // }
-                    
+
                     // res.json({ otp: 'Verified' })
                 })
         })
@@ -280,30 +316,7 @@ router.post('/login', (req, res) => {
 // @desc    Reset user's password
 // @access  public
 
-/**
- * @swagger
- * /api/user/password-reset:
- *  post:
- *      summary: Reset user's password
- *      tags: [UserModel]
- *      requestBody:
- *          required: true
- *          content:
- *              application/json:
- *                  schema:
- *                      type: object
- *                      $ref: '#/components/schemas/UserModel'
- *      responses:
- *          200:
- *              description: Password reset successfully
- *              content:
- *                  application/json:
- *                      schema:
- *                          type: object
- *                          $ref: '#/components/schemas/UserModel'
- *          400:
- *              description: Bad Request
- */
+
 router.post('/reset-password', (req, res) => {
     const { errors, isValid } = validateLoginInput(req.body)
 
