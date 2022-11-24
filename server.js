@@ -37,6 +37,7 @@ const swaggerOptions = {
             }
         },
         servers: [
+            { url: `https://one-hundredk-crypto-api.herokuapp.com` },
             { url: `http://localhost:5000` }
         ],
     },
